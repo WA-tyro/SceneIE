@@ -6,22 +6,23 @@ import torch
 from skimage.metrics import structural_similarity as compare_ssim
 import torchvision.transforms as transforms
 import models_vit
+from loadData import tone, read_hdr
 
 device = 'cuda'
 
 
 def gen_eval_txt():
-    with open('/media/wangao/DataDisk/Study/PycharmProject/VIT/vit-pytorch/Data/test.txt') as f:
+    with open('./Data/test.txt') as f:
         content = f.readlines()
 
-    with open('/media/wangao/DataDisk/Study/PycharmProject/VIT/vit-pytorch/Data/eval.txt', 'w') as f:
+    with open('./Data/eval.txt', 'w') as f:
         for line in content:
             f.write(line.replace('/sh/', '/gt/').replace('.txt', '_horse.jpg'))
 
 
 class Evaluator:
     def __init__(self):
-        shmap = torch.tensor(np.load('../Data/shmap/horse.npy')).to(device)
+        shmap = torch.tensor(np.load('./Data/shmap/horse.npy')).to(device)
         self.shmap = shmap.reshape((360, 480, 16, 1))
         mask = torch.abs(self.shmap).sum(dim=-2).reshape((360, 480, 1))
         self.mask = mask.bool().to(torch.uint8)
@@ -115,53 +116,36 @@ class Evaluator:
 
 
 if __name__ == '__main__':
-    # gen_eval_txt()
-    # model = ViT(
-    #     image_size=224,
-    #     patch_size=16,
-    #     num_classes=1000,
-    #     dim=1024,
-    #     depth=12,
-    #     heads=16,
-    #     mlp_dim=2048,
-    #     dropout=0.1,
-    #     emb_dropout=0.1
-    # )
+    gen_eval_txt()
+
     model = models_vit.__dict__['vit_base_patch16'](
-        img_size=224,
+        img_size=256,
         num_classes=48,
         drop_path_rate=0.1,
         global_pool=False,
     )
-    # model = AlexNet()
-    # model = mobilenetv3.MobileNetV3_Small()
-    # linear = nn.Linear(2560, 48)
-    # linear.add_module('drop', nn.Sequential(nn.Dropout(p=0.2, inplace=True)))
-
-    # model = MobileNetV3.MobileNetV3()
     model.to(device)
     # linear.to(device)
     model.eval()
     # linear.eval()
     evaluator = Evaluator()
 
-    checkpoint = torch.load("./weights/model-100.pth", map_location=device)
+    checkpoint = torch.load("./weights/model-65.pth", map_location=device)
     model.load_state_dict(checkpoint)
     # linear.load_state_dict(checkpoint['linear'])
     print("模型加载成功，准备预测啦")
 
-    base_dir = '/home/wangao/PycharmProjects/code/'
-    with open('/media/wangao/DataDisk/Study/PycharmProject/VIT/vit-pytorch/Data/list/test.txt', 'r') as f:
+    with open('./Data/list/test.txt', 'r') as f:
         # with open('/home/wangao/PycharmProjects/code/data/list/eval.txt', 'r') as f:
         lines = f.readlines()
 
     with torch.no_grad():
         for line in lines:
-            input = torch.FloatTensor(plt.imread(line.split(" ")[0]))
+            input = torch.FloatTensor(tone(read_hdr(line.split("*")[0])))
             input = input.permute(2, 0, 1)
             input = input.unsqueeze(0).to(device)
             # gt = imread(line.split(" ")[1].strip('\n'))
-            input = transforms.RandomResizedCrop(224, scale=(0.2, 1.0), interpolation=3)(input)
+            # input = transforms.RandomResizedCrop(224, scale=(0.2, 1.0), interpolation=3)(input)
             pred = model(input)
 
             # input = torch.FloatTensor(plt.imread('/home/wangao/PycharmProjects/code/data/im/0032/000_0.jpg'))
@@ -179,6 +163,6 @@ if __name__ == '__main__':
             # feature_fusion = torch.concat([feature1, feature2],dim=-1)
             # pred = linear(feature_fusion)
 
-            evaluator.forward(pred, line.split(" ")[1].strip('\n'))
+            evaluator.forward(pred, line.split("*")[1].strip('\n'))
             metric = evaluator.get_metric()
             print('Mean RMSE: %.4f, Mean DSSIM: %.4f\n' % (metric['rmse'], metric['dssim']))
