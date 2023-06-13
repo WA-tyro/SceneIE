@@ -14,6 +14,9 @@ if os.path.exists("./weights") is False:
 tb_writer = SummaryWriter()
 shmap = utils.load_shamp('./Data/shmap/concated.npy')
 
+checkpoints_path = tb_writer.log_dir + "/weights"
+if not os.path.exists(checkpoints_path):
+    os.mkdir(checkpoints_path)
 continueTrain = utils.continueTrain
 epochs = 100
 
@@ -105,7 +108,7 @@ for epoch in training_epochs:
     tb_writer.add_scalar(tags[2], optimizer.param_groups[0]["lr"], epoch)
     tb_writer.add_scalar(tags[2], train_loss, optimizer.param_groups[0]["lr"])
 
-    torch.save(model.state_dict(), "./weights/model-{}.pth".format(epoch))
+    torch.save(model.state_dict(), checkpoints_path + "/model-{}.pth".format(epoch))
     # torch.save({
     #     'feature_Extract':model.state_dict(),
     #     'linear':linear.state_dict()
