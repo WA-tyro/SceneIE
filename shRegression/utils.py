@@ -140,15 +140,6 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, trainin
         # imagepred_focal = Focal(shimagepred)
         # imagegt_focal = Focal(shimagegt)
 
-        # imagepred_top = caculateTopk(shimagepred)
-        # imagegt_top = caculateTopk(shimagegt)
-
-        # feature1 = model(imgsAndSH[0].to(device))
-        # feature2 = model(imgsAndSH[1].to(device))
-        # sh_gt = imgsAndSH[2].to(device)
-        # feature_fusion = torch.concat([feature1,feature2],dim=-1)
-        # predict = linear(feature_fusion)
-
         # 先恢复图像再计算损失
         Loss = F.mse_loss(shimagepred, shimagegt)
         Loss_shimage = F.mse_loss(shimagepred, shimagegt)
@@ -218,11 +209,6 @@ def eval_one_epoch(model, data_loader, device, epoch, shmap, Eval_examples):
             # imagepred_top = caculateTopk(shimagepred)
             # imagegt_top = caculateTopk(shimagegt)
 
-            # feature1 = model(imgsAndSH[0].to(device))
-            # feature2 = model(imgsAndSH[1].to(device))
-            # sh_gt = imgsAndSH[2].type(torch.float32).to(device)
-            # feature_fusion = torch.concat([feature1, feature2], dim=-1)
-            # predict = linear(feature_fusion)
 
             # 先恢复图像再计算损失
             Loss = F.mse_loss(shimagepred, shimagegt)
