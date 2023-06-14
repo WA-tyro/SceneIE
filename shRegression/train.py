@@ -8,8 +8,9 @@ from sh_render import device
 import utils
 from torch.utils.tensorboard import SummaryWriter
 import models_vit
-if os.path.exists("./weights") is False:
-    os.makedirs("./weights")
+savdir = "runs/256x256InputVit/weights"
+if os.path.exists(savdir) is False:
+    os.makedirs(savdir)
 
 tb_writer = SummaryWriter()
 shmap = utils.load_shamp('./Data/shmap/concated.npy')
@@ -51,7 +52,7 @@ for epoch in training_epochs:
     # print(model)
     print("training" + '\n' + "Epoch:{} 训练开始".format(epoch))
     # print(model.parameters())
-    train_loss = utils.train_one_epoch(model, optimizer, train_data, device, epoch, shmap, total_train, iter)
+    train_loss = utils.train_one_epoch(model, optimizer, train_data, device, epoch, shmap, total_train, iter, savdir)
     iter = 0
     eval_loss = utils.eval_one_epoch(model, Eval_data, device, first_epoch, shmap, total_eval)
 

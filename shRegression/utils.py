@@ -119,7 +119,7 @@ def initialize_model(net, optimizer, continue_train, weights_path='./weights/lat
         net.load_state_dict(checkpoint, strict=False)
         print(net.load_state_dict(checkpoint, strict=False))
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, training_examples, iter):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, training_examples, iter, savdir):
     Loss_sum = torch.zeros(1).to(device)
     model.train()
     # linear.train()
@@ -173,7 +173,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, trainin
                 'epoch': epoch,
                 'iter': i + 1
             }
-            torch.save(checkpoint, "./weights/latest.pth")
+            torch.save(checkpoint, savdir + "/latest.pth")
             print('Saved current weights at %s.' % "./weights/latest.pth")
 
     print('saving the latest model (epoch %d, total_steps %d)' % (epoch, epoch * training_examples))
@@ -183,7 +183,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, trainin
         'epoch': epoch,
         'iter': training_examples
     }
-    torch.save(checkpoint, "./weights/latest.pth")
+    torch.save(checkpoint, savdir + "/latest.pth")
     print('Saved current weights at %s.' % "./weights/latest.pth")
 
     print("Epoch:{} average loss: ".format(epoch), Loss_sum / torch.tensor(training_examples))
