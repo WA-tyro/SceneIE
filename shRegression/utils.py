@@ -93,7 +93,7 @@ def reconstruction(coeff, shcoeff, tag):
         shcoeff = torch.reshape(shcoeff, (batch, 3, 16))
     h = 128
     w = 256
-    # shcoeff = shcoeff * 255.0
+    shcoeff = shcoeff * 255.0
     r_coeff = shcoeff[:, 0, :].unsqueeze(1)
     g_coeff = shcoeff[:, 1, :].unsqueeze(1)
     b_coeff = shcoeff[:, 2, :].unsqueeze(1)
@@ -105,7 +105,7 @@ def reconstruction(coeff, shcoeff, tag):
     sh_img[:, :, :, 0] = torch.reshape(out_r, (batch, w, h)).T.permute(2, 0, 1)
     sh_img[:, :, :, 1] = torch.reshape(out_g, (batch, w, h)).T.permute(2, 0, 1)
     sh_img[:, :, :, 2] = torch.reshape(out_b, (batch, w, h)).T.permute(2, 0, 1)
-    # sh_img = torch.clamp(sh_img, 0, 255).to(torch.uint8)
+    # sh_img = torch.clamp(sh_img, 0, 255)
     return sh_img
 
 
