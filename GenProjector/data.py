@@ -61,14 +61,14 @@ class LavalIndoorDataset():
         # if opt.phase == 'train':
         # dir = 'Laval Indoor/'
         # pkl_dir = opt.dataroot + dir
-        pkl_dir = '/media/wangao/DataDisk/Study/Dataset/warped_Laval_Indoor_HDR_Dataset/pkl/'
+        pkl_dir = '/media/wangao/DataDisk/Study/Dataset/warped_Laval_Indoor_HDR_Dataset/pkl/train/'
         pairs = []
         nms = os.listdir(pkl_dir)
 
         for nm in nms:
             if nm.endswith('.pickle'):
                 pkl_path = pkl_dir + nm
-                warped_path = pkl_path.replace('pkl', 'warpedHDROutputs/train/')
+                warped_path = pkl_path.replace('pkl', 'warpedHDROutputs')
                 # warped_path = pkl_path.replace(dir, 'test/')
                 warped_path = warped_path.replace('pickle', 'exr')
                 # print (warped_path)
@@ -103,25 +103,26 @@ class LavalIndoorDataset():
         warped = np.transpose(hdr, (2, 0, 1))
         warped = torch.from_numpy(warped)
         warped = warped * alpha
-
-        dist_gt = torch.from_numpy(pkl['distribution']).float().cuda()
-        intensity_gt = torch.from_numpy(np.array(pkl['intensity'])).float().cuda() * 0.01
-        rgb_ratio_gt = torch.from_numpy(np.array(pkl['rgb_ratio'])).float().cuda()
+        #
+        # dist_gt = torch.from_numpy(pkl['distribution']).float().cuda()
+        # intensity_gt = torch.from_numpy(np.array(pkl['intensity'])).float().cuda() * 0.01
+        # rgb_ratio_gt = torch.from_numpy(np.array(pkl['rgb_ratio'])).float().cuda()
         # ambient_gt = torch.from_numpy(pkl['ambient']).float().cuda() / (128 * 256)
         shimage_gt = torch.from_numpy(pkl['sh_image']).cuda()
 
         # plt.imshow( shimage_gt)
         # plt.show()
+        #
+        # intensity_gt = intensity_gt.view(1, 1, 1).repeat(1, ln, 3)
+        # dist_gt = dist_gt.view(1, ln, 1).repeat(1, 1, 3)
+        # rgb_ratio_gt = rgb_ratio_gt.view(1, 1, 3).repeat(1, ln, 1)
+        #
+        # dirs = util.sphere_points(ln)
+        # dirs = torch.from_numpy(dirs).float().view(1, ln * 3).cuda()
+        # size = torch.ones((1, ln)).cuda().float() * 0.0025
+        # light_gt = (dist_gt * intensity_gt * rgb_ratio_gt).view(1, ln * 3)
+        # env_gt = util.convert_to_panorama(dirs, size, light_gt)
 
-        intensity_gt = intensity_gt.view(1, 1, 1).repeat(1, ln, 3)
-        dist_gt = dist_gt.view(1, ln, 1).repeat(1, 1, 3)
-        rgb_ratio_gt = rgb_ratio_gt.view(1, 1, 3).repeat(1, ln, 1)
-
-        dirs = util.sphere_points(ln)
-        dirs = torch.from_numpy(dirs).float().view(1, ln * 3).cuda()
-        size = torch.ones((1, ln)).cuda().float() * 0.0025
-        light_gt = (dist_gt * intensity_gt * rgb_ratio_gt).view(1, ln * 3)
-        env_gt = util.convert_to_panorama(dirs, size, light_gt)
         # ambient_gt = ambient_gt.view(3, 1, 1).repeat(1, 128, 256).cuda()
         # env_gt = env_gt.view(3, 128, 256) + ambient_gt
         # env_gt = env_gt * alpha
@@ -133,8 +134,8 @@ class LavalIndoorDataset():
         # plt.imshow(env_gt)
         # plt.show()
         shimage_gt = shimage_gt.permute(2, 0, 1)
-        env_gt = env_gt.view(3, 128, 256) + shimage_gt
-        env_gt = torch.add(torch.mul(shimage_gt,0.5),torch.mul(env_gt,0.5))
+        env_gt = shimage_gt
+        # env_gt = torch.add(torch.mul(shimage_gt,0.5),torch.mul(env_gt,0.5))
         env_gt = env_gt * alpha
 
         # env_gt = env_gt.permute(1,2,0).detach().cpu().numpy()
@@ -142,8 +143,7 @@ class LavalIndoorDataset():
         # plt.show()
 
 
-        input_dict = {'input': env_gt, 'crop': crop, 'warped': warped, 'map': map,
-                      'distribution': dist_gt, 'intensity': intensity_gt,
+        input_dict = {'input': env_gt, 'crop': crop, 'warped': warped, 'map': map,'shimage': shimage_gt,
                       'name': pkl_path.split('/')[-1].split('.')[0]}
 
         return input_dict
