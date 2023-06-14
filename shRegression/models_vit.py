@@ -25,7 +25,11 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
 
         self.global_pool = global_pool
         embed_dim = kwargs['embed_dim']
-        self.fc_sh = nn.Linear(embed_dim, 48)
+        # self.fc_sh = nn.Linear(embed_dim, 48)
+        self.fc_sh = nn.Sequential(
+            nn.LayerNorm(embed_dim),
+            nn.Linear(embed_dim, 48)
+        )
         if self.global_pool:
             norm_layer = kwargs['norm_layer']
             embed_dim = kwargs['embed_dim']
