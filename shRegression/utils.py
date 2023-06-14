@@ -30,6 +30,7 @@ from torch.utils.tensorboard import SummaryWriter
 coeff = np.loadtxt('coeff.txt')
 continueTrain = False
 
+
 def Focal(x):
     x = x.cpu().detach().numpy()
     h = x.shape[1]
@@ -44,10 +45,9 @@ def Focal(x):
     max_intensity_ind = np.unravel_index(np.argmax(x_intensity, axis=None), x_intensity.shape)
     max_intensity = x_intensity[max_intensity_ind]
     map = x_intensity > (max_intensity * 0.05)
-    light = x * map[:,:,:,np.newaxis]
+    light = x * map[:, :, :, np.newaxis]
     light = torch.from_numpy(light)
     return light
-
 
 
 def caculateTopk(x):
@@ -84,7 +84,6 @@ def creat_dataloader(trainList_path):
     return data, total_batch
 
 
-
 def reconstruction(coeff, shcoeff, tag):
     batch = shcoeff.shape[0]
     coeff = torch.from_numpy(coeff)
@@ -119,7 +118,8 @@ def initialize_model(net, optimizer, continue_train, weights_path='./weights/lat
         net.load_state_dict(checkpoint, strict=False)
         print(net.load_state_dict(checkpoint, strict=False))
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, training_examples, iter, savdir):
+
+def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, training_examples, iter, basedir):
     Loss_sum = torch.zeros(1).to(device)
     model.train()
     # linear.train()
@@ -165,7 +165,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, trainin
             Loss.cpu().detach().numpy())
         )
 
-        if (i+1) % 500 == 0:
+        if (i + 1) % 500 == 0:
             print('saving the latest model (epoch %d, total_steps %d)' % (epoch, (epoch - 1) * training_examples + i))
             checkpoint = {
                 'model': model.state_dict(),
@@ -173,7 +173,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, trainin
                 'epoch': epoch,
                 'iter': i + 1
             }
-            torch.save(checkpoint, savdir + "/latest.pth")
+            torch.save(checkpoint, basedir + "/weights/latest.pth")
             print('Saved current weights at %s.' % "./weights/latest.pth")
 
     print('saving the latest model (epoch %d, total_steps %d)' % (epoch, epoch * training_examples))
@@ -183,7 +183,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, trainin
         'epoch': epoch,
         'iter': training_examples
     }
-    torch.save(checkpoint, savdir + "/latest.pth")
+    torch.save(checkpoint, basedir + "/weights/latest.pth")
     print('Saved current weights at %s.' % "./weights/latest.pth")
 
     print("Epoch:{} average loss: ".format(epoch), Loss_sum / torch.tensor(training_examples))
@@ -209,7 +209,6 @@ def eval_one_epoch(model, data_loader, device, epoch, shmap, Eval_examples):
             # imagepred_top = caculateTopk(shimagepred)
             # imagegt_top = caculateTopk(shimagegt)
 
-
             # 先恢复图像再计算损失
             Loss = F.mse_loss(shimagepred, shimagegt)
 
@@ -220,4 +219,4 @@ def eval_one_epoch(model, data_loader, device, epoch, shmap, Eval_examples):
             Loss_sumEval += Loss.item()
             # print("loss: {}".format(Loss))
     print("Epoch:{} Evaluating average loss: ".format(epoch), Loss_sumEval / torch.tensor(Eval_examples))
-    return Loss_sumEval / torch.tensor(Eval_examples)
+    return Loss_sumEval / torch.tensor(Eval_examples), shimagegt[0], shimagepred[0]

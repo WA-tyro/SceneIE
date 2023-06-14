@@ -8,11 +8,16 @@ from sh_render import device
 import utils
 from torch.utils.tensorboard import SummaryWriter
 import models_vit
-savdir = "runs/256x256InputVit/weights"
-if os.path.exists(savdir) is False:
-    os.makedirs(savdir)
 
 tb_writer = SummaryWriter()
+
+base_dir = tb_writer.log_dir
+savdir = base_dir + "/weights"
+result_dir = base_dir + '/results'
+if os.path.exists(savdir) is False:
+    os.makedirs(savdir)
+    os.makedirs(result_dir)
+
 shmap = utils.load_shamp('./Data/shmap/concated.npy')
 
 checkpoints_path = tb_writer.log_dir + "/weights"
@@ -25,11 +30,11 @@ train_data, total_train = utils.creat_dataloader('./Data/list/train.txt')
 Eval_data, total_eval = utils.creat_dataloader('./Data/list/test.txt')
 
 model = models_vit.__dict__['vit_base_patch16'](
-        img_size= 256,
-        num_classes=48,
-        drop_path_rate=0.1,
-        global_pool=False,
-    )
+    img_size=256,
+    num_classes=48,
+    drop_path_rate=0.1,
+    global_pool=False,
+)
 
 model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=8e-4, betas=(0.9, 0.99), eps=1e-8)
@@ -39,32 +44,27 @@ if continueTrain:
     utils.initialize_model(model, optimizer, continueTrain)
     checkpoint = torch.load('./weights/latest.pth', map_location=device)
     first_epoch, iter = checkpoint['epoch'], checkpoint['iter']
-    training_epochs = range(first_epoch, epochs+1)
+    training_epochs = range(first_epoch, epochs + 1)
 else:
     # utils.initialize_model(model, optimizer, continueTrain, './mae_pretrain_vit_base.pth')
-    training_epochs = range(1, epochs+1)
+    training_epochs = range(1, epochs + 1)
     iter = 0
     first_epoch = 1
-
-
 
 for epoch in training_epochs:
     # print(model)
     print("training" + '\n' + "Epoch:{} 训练开始".format(epoch))
     # print(model.parameters())
-    train_loss = utils.train_one_epoch(model, optimizer, train_data, device, epoch, shmap, total_train, iter, savdir)
+    train_loss = utils.train_one_epoch(model, optimizer, train_data, device, epoch, shmap, total_train, iter, base_dir)
     iter = 0
-    eval_loss = utils.eval_one_epoch(model, Eval_data, device, first_epoch, shmap, total_eval)
+    eval_loss, gt, pred = utils.eval_one_epoch(model, Eval_data, device, first_epoch, shmap, total_eval)
+    result = torch.vstack((gt, pred)).detach().cpu().numpy()
 
-    tags = ["train_loss", "val_loss", "learning_rate",'lr&loss']
+    tags = ["train_loss", "val_loss", "learning_rate", 'lr&loss']
     tb_writer.add_scalar(tags[0], train_loss, epoch)
     tb_writer.add_scalar(tags[1], eval_loss, epoch)
     tb_writer.add_scalar(tags[2], optimizer.param_groups[0]["lr"], epoch)
     tb_writer.add_scalar(tags[2], train_loss, optimizer.param_groups[0]["lr"])
+    tb_writer.add_image('result', result,epoch,dataformats='HWC')
 
     torch.save(model.state_dict(), checkpoints_path + "/model-{}.pth".format(epoch))
-
-
-
-
-
