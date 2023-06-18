@@ -92,7 +92,7 @@ def reconstruction(coeff, shcoeff, tag):
         shcoeff = torch.reshape(shcoeff, (batch, 3, 16))
     h = 128
     w = 256
-    shcoeff = shcoeff * 255.0
+    # shcoeff = shcoeff * 255.0
     r_coeff = shcoeff[:, 0, :].unsqueeze(1)
     g_coeff = shcoeff[:, 1, :].unsqueeze(1)
     b_coeff = shcoeff[:, 2, :].unsqueeze(1)
@@ -141,12 +141,12 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, shmap, trainin
         # imagegt_focal = Focal(shimagegt)
 
         # 先恢复图像再计算损失
-        Loss = F.mse_loss(shimagepred, shimagegt)
+        # Loss = F.mse_loss(shimagepred, shimagegt)
         Loss_shimage = F.mse_loss(shimagepred, shimagegt)
         # Loss_Focal = F.mse_loss(imagepred_focal, imagegt_focal)
 
-        # # 直接计算sh系数的损失
-        # Loss = F.mse_loss(sh_gt.float(), torch.reshape(predict, (predict.shape[0], 3, 16)))
+
+        Loss = F.mse_loss(sh_gt.float(), torch.reshape(predict, (predict.shape[0], 3, 16))) + Loss_shimage
         # Loss = loss(predict, sh_gt, shmap, 0.5)
 
         # Loss = loss_SH(predict, sh_gt)
