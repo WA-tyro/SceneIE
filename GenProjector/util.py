@@ -18,9 +18,13 @@ import math
 import OpenEXR, Imath
 import os
 import imageio
+from torch.utils.tensorboard import SummaryWriter
 import vtk
 from vtk.util import numpy_support
 imageio.plugins.freeimage.download()
+
+tb_writer = SummaryWriter()
+base_dir = tb_writer.log_dir
 
 
 def save_obj(obj, name):
@@ -31,6 +35,7 @@ def save_obj(obj, name):
 def load_obj(name):
     with open(name, 'rb') as f:
         return pickle.load(f)
+
 
 # returns a configuration for creating a generator
 # |default_opt| should be the opt of the current experiment
@@ -164,7 +169,8 @@ def find_class_in_module(target_cls_name, module):
             cls = clsobj
 
     if cls is None:
-        print("In %s, there should be a class whose name matches %s in lowercase without underscore(_)" % (module, target_cls_name))
+        print("In %s, there should be a class whose name matches %s in lowercase without underscore(_)" % (
+        module, target_cls_name))
         exit(0)
 
     return cls
@@ -181,14 +187,15 @@ def save_network(net, label, epoch, opt):
 def load_network(net, label, epoch, opt):
     save_filename = '%s_net_%s.pth' % (epoch, label)
 
-    print ('***********')
-    print (save_filename)
+    print('***********')
+    print(save_filename)
 
     save_dir = os.path.join(opt.checkpoints_dir, opt.name)
     save_path = os.path.join(save_dir, save_filename)
     weights = torch.load(save_path)
     net.load_state_dict(weights)
     return net
+
 
 class TonemapHDR(object):
     """
@@ -252,16 +259,16 @@ def load_exr(in_file):
     size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
 
     redstr = golden.channel('R', pt)
-    red = np.fromstring(redstr, dtype = np.float32)
-    red.shape = (size[1], size[0]) # Numpy arrays are (row, col)
+    red = np.fromstring(redstr, dtype=np.float32)
+    red.shape = (size[1], size[0])  # Numpy arrays are (row, col)
 
     greenstr = golden.channel('G', pt)
-    green = np.fromstring(greenstr, dtype = np.float32)
-    green.shape = (size[1], size[0]) # Numpy arrays are (row, col)
+    green = np.fromstring(greenstr, dtype=np.float32)
+    green.shape = (size[1], size[0])  # Numpy arrays are (row, col)
 
     bluestr = golden.channel('B', pt)
-    blue = np.fromstring(bluestr, dtype = np.float32)
-    blue.shape = (size[1], size[0]) # Numpy arrays are (row, col)
+    blue = np.fromstring(bluestr, dtype=np.float32)
+    blue.shape = (size[1], size[0])  # Numpy arrays are (row, col)
 
     img = np.zeros((size[1], size[0], 3), dtype=np.float32)
     img[:, :, 0] = red
@@ -277,8 +284,8 @@ def write_exr(out_file, data):
     blue = data[:, :, 2]
     exr.writePixels({'R': red.tostring(), 'G': green.tostring(), 'B': blue.tostring()})
 
-def resize_exr(img, res_x=512, res_y=512):
 
+def resize_exr(img, res_x=512, res_y=512):
     theta, phi, move = 0.0, 0.0, 0.0
     img_x = img.shape[0]
     img_y = img.shape[1]
@@ -294,31 +301,31 @@ def resize_exr(img, res_x=512, res_y=512):
     cos_theta = math.cos(theta)
     sin_theta = math.sin(theta)
     theta_rot_mat = np.array([[1, 0, 0], \
-            [0, cos_theta, -sin_theta], \
-            [0, sin_theta, cos_theta]], dtype=np.float32)
+                              [0, cos_theta, -sin_theta], \
+                              [0, sin_theta, cos_theta]], dtype=np.float32)
 
     # phi rotation matrix
     cos_phi = math.cos(phi)
     sin_phi = -math.sin(phi)
-    phi_rot_mat = np.array([[cos_phi + axis_x**2 * (1 - cos_phi), \
-            axis_x * axis_y * (1 - cos_phi) - axis_z * sin_phi, \
-            axis_x * axis_z * (1 - cos_phi) + axis_y * sin_phi], \
-            [axis_y * axis_x * (1 - cos_phi) + axis_z * sin_phi, \
-            cos_phi + axis_y**2 * (1 - cos_phi), \
-            axis_y * axis_z * (1 - cos_phi) - axis_x * sin_phi], \
-            [axis_z * axis_x * (1 - cos_phi) - axis_y * sin_phi, \
-            axis_z * axis_y * (1 - cos_phi) + axis_x * sin_phi, \
-            cos_phi + axis_z**2 * (1 - cos_phi)]], dtype=np.float32)
+    phi_rot_mat = np.array([[cos_phi + axis_x ** 2 * (1 - cos_phi), \
+                             axis_x * axis_y * (1 - cos_phi) - axis_z * sin_phi, \
+                             axis_x * axis_z * (1 - cos_phi) + axis_y * sin_phi], \
+                            [axis_y * axis_x * (1 - cos_phi) + axis_z * sin_phi, \
+                             cos_phi + axis_y ** 2 * (1 - cos_phi), \
+                             axis_y * axis_z * (1 - cos_phi) - axis_x * sin_phi], \
+                            [axis_z * axis_x * (1 - cos_phi) - axis_y * sin_phi, \
+                             axis_z * axis_y * (1 - cos_phi) + axis_x * sin_phi, \
+                             cos_phi + axis_z ** 2 * (1 - cos_phi)]], dtype=np.float32)
 
     indx = np.tile(np.array(np.arange(res_x), dtype=np.float32), (res_y, 1)).T
     indy = np.tile(np.array(np.arange(res_y), dtype=np.float32), (res_x, 1))
 
     map_x = np.sin(indx * math.pi / res_x - math.pi / 2)
-    map_y = np.sin(indy * (2 * math.pi)/ res_y) * np.cos(indx * math.pi / res_x - math.pi / 2)
-    map_z = -np.cos(indy * (2 * math.pi)/ res_y) * np.cos(indx * math.pi / res_x - math.pi / 2)
+    map_y = np.sin(indy * (2 * math.pi) / res_y) * np.cos(indx * math.pi / res_x - math.pi / 2)
+    map_z = -np.cos(indy * (2 * math.pi) / res_y) * np.cos(indx * math.pi / res_x - math.pi / 2)
 
     ind = np.reshape(np.concatenate((np.expand_dims(map_x, 2), np.expand_dims(map_y, 2), \
-            np.expand_dims(map_z, 2)), axis=2), [-1, 3]).T
+                                     np.expand_dims(map_z, 2)), axis=2), [-1, 3]).T
 
     move_dir = np.array([0, 0, -1], dtype=np.float32)
     move_dir = theta_rot_mat.dot(move_dir)
@@ -329,13 +336,13 @@ def resize_exr(img, res_x=512, res_y=512):
 
     ind += np.tile(move * move_dir, (ind.shape[1], 1)).T
 
-    vec_len = np.sqrt(np.sum(ind**2, axis=0))
+    vec_len = np.sqrt(np.sum(ind ** 2, axis=0))
     ind /= np.tile(vec_len, (3, 1))
 
     cur_phi = np.arcsin(ind[0, :])
     cur_theta = np.arctan2(ind[1, :], -ind[2, :])
 
-    map_x = (cur_phi + math.pi/2) / math.pi * img_x
+    map_x = (cur_phi + math.pi / 2) / math.pi * img_x
     map_y = cur_theta % (2 * math.pi) / (2 * math.pi) * img_y
 
     map_x = np.reshape(map_x, [res_x, res_y])
@@ -355,7 +362,7 @@ def convert_to_panorama(dirs, sizes, dist):
     x = torch.sin(grid_latitude) * torch.cos(grid_longitude)
     y = torch.sin(grid_latitude) * torch.sin(grid_longitude)
     z = torch.cos(grid_latitude)
-    xyz =  torch.stack((x, y, z)).cuda()
+    xyz = torch.stack((x, y, z)).cuda()
 
     nbatch = dist.shape[0]
     lights = torch.zeros((nbatch, 3, 128, 256), dtype=dirs.dtype, device=dirs.device)
@@ -378,8 +385,8 @@ def normalize_2_unit_sphere(pts):
         n = vtk.vtkMath.Normalize(tmp)
         pts.SetPoint(i, tmp)
 
-def polyhedron(subdivide=1):
 
+def polyhedron(subdivide=1):
     icosa = vtk.vtkPlatonicSolidSource()
     icosa.SetSolidTypeToIcosahedron()
     icosa.Update()
@@ -405,6 +412,7 @@ def polyhedron(subdivide=1):
     # print (as_numpy.shape)
     return pts_arr
 
+
 def sphere_points(n=128):
     golden_angle = np.pi * (3 - np.sqrt(5))
     theta = golden_angle * np.arange(n)
@@ -420,10 +428,12 @@ def sphere_points(n=128):
     # x, y, z = xyz[:, 0], xyz[:, 1], xyz[:, 2]
     return points
 
+
 def cartesian_to_polar(xyz):
     theta = np.arccos(np.clip(xyz[2], -1.0, 1.0))
     phi = np.arctan2(xyz[1], xyz[0])
     return phi, theta
+
 
 def polar_to_cartesian(phi_theta):
     x = np.sin(phi_theta[:, 1]) * np.cos(phi_theta[:, 0])
@@ -434,7 +444,7 @@ def polar_to_cartesian(phi_theta):
 
 def convert_visuals_to_numpy(visuals):
     for key, t in visuals.items():
-        t = t.permute(1,2,0)
+        t = t.permute(1, 2, 0)
         tmp = np.squeeze(t.detach().cpu().numpy())
         visuals[key] = tmp
     return visuals
@@ -447,13 +457,17 @@ def print_current_errors(epoch, i, errors, t):
         message += '%s: %.3f ' % (k, v)
     print(message)
 
+
 def save_current_images(visuals, epoch, step):
+    savdir = base_dir + '/summary/'
+    if os.path.exists(savdir) is False:
+        os.makedirs(savdir)
     ## convert tensors to numpy arrays
     visuals = convert_visuals_to_numpy(visuals)
 
     # if self.use_html:  # save images to a html file
     for label, image_numpy in visuals.items():
-        img_path = './summary/' + 'epoch%.3d_iter%.3d_%s.png' % (epoch, step, label)
+        img_path = savdir + 'epoch%.3d_iter%.3d_%s.png' % (epoch, step, label)
         if label == 'input':
             print(label, image_numpy.sum(axis=(0, 1)), np.max(image_numpy))
             tonemapping(image_numpy, img_path, gamma=2.4, percentile=99, max_mapping=0.8)
@@ -465,6 +479,7 @@ def save_current_images(visuals, epoch, step):
             print(label, image_numpy.sum(axis=(0, 1)), np.max(image_numpy))
             tonemapping(image_numpy, img_path)
             # if label == 'warped' or 'fake_image':
+
 
 def save_test_images(visuals, nm):
     ## convert tensors to numpy arrays
@@ -500,15 +515,13 @@ def save_test_images(visuals, nm):
             im_path = './results/' + nm + '_' + label + '.jpg'
             # print (image_numpy.shape)
             # tonemapping(image_numpy[:,:,:3]
-            input = image_numpy[:,:,:] * 255.0
+            input = image_numpy[:, :, :] * 255.0
             tonemapping(input, im_path, percentile=99, max_mapping=0.99)
 
         # if label == 'im':
         #     im_path = './results/' + nm + '_' + 'crop' + '.jpg'
         #     crop = image_numpy
         #     tonemapping(crop, im_path)
-
-
 
         # if label == 'warped':
         #     im_path = './results/' + nm + '_' + label + '.jpg'
