@@ -7,6 +7,7 @@ import torch
 import models.networks as networks
 import util
 import torch.nn.functional as F
+import numpy as np
 
 
 class Pix2PixModel(torch.nn.Module):
@@ -88,6 +89,28 @@ class Pix2PixModel(torch.nn.Module):
 
         return netG, netD
 
+    def Focal(self,x):
+        x = x.cpu().detach().numpy()
+        h = x.shape[1]
+        w = x.shape[2]
+        steradian = np.linspace(0, h, num=h, endpoint=False) + 0.5
+        steradian = np.sin(steradian / h * np.pi)
+        steradian = np.tile(steradian.transpose(), (w, 1))
+        steradian = steradian.transpose()
+        steradian = steradian[..., np.newaxis]
+        x = steradian * x
+        x_intensity = 0.3 * x[..., 0] + 0.59 * x[..., 1] + 0.11 * x[..., 2]
+        max_intensity_ind = np.unravel_index(np.argmax(x_intensity, axis=None), x_intensity.shape)
+        max_intensity = x_intensity[max_intensity_ind]
+        map = x_intensity > (max_intensity * 0.05)
+        light = x * map[:, :, :, np.newaxis]
+        light = torch.from_numpy(light)
+        return light
+
+    def compute_Focal_loss(self,real_image, fake_iamge):
+        focal_loss = torch.nn.MSELoss()(self.Focal(real_image),self.Focal(fake_iamge))
+        return focal_loss
+
 
     def compute_generator_loss(self, input, crop, real_image, map):
         G_losses = {}
@@ -97,6 +120,7 @@ class Pix2PixModel(torch.nn.Module):
 
         pred_fake, pred_real = self.discriminate(input, fake_image, real_image)
         G_losses['GAN'] = self.criterionGAN(pred_fake, True, for_discriminator=False)
+        G_losses['Focal'] = self.compute_Focal_loss(real_image, fake_image)
 
         if not self.opt.no_ganFeat_loss:
             num_D = len(pred_fake)
