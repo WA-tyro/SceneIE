@@ -43,6 +43,10 @@ class LavalIndoorDataset():
         self.dataset_size = size
 
         self.tone = util.TonemapHDR(gamma=2.4, percentile=50, max_mapping=0.5)
+        if opt.isTrain:
+            self.flag = 'train'
+        else:
+            self.flag = 'test'
 
         h, w = 128, 256
         steradian = np.linspace(0, h, num=h, endpoint=False) + 0.5
@@ -61,14 +65,14 @@ class LavalIndoorDataset():
         # if opt.phase == 'train':
         # dir = 'Laval Indoor/'
         # pkl_dir = opt.dataroot + dir
-        pkl_dir = '/media/wangao/DataDisk/Study/Dataset/warped_Laval_Indoor_HDR_Dataset/pkl/train/'
+        pkl_dir = '/media/wangao/DataDisk/Study/Dataset/warped_Laval_Indoor_HDR_Dataset/shpkl/' + self.flag + '/'
         pairs = []
         nms = os.listdir(pkl_dir)
 
         for nm in nms:
             if nm.endswith('.pickle'):
                 pkl_path = pkl_dir + nm
-                warped_path = pkl_path.replace('pkl', 'warpedHDROutputs')
+                warped_path = pkl_path.replace('shpkl', 'warpedHDROutputs')
                 # warped_path = pkl_path.replace(dir, 'test/')
                 warped_path = warped_path.replace('pickle', 'exr')
                 # print (warped_path)
@@ -85,7 +89,7 @@ class LavalIndoorDataset():
         handle = open(pkl_path, 'rb')
         pkl = pickle.load(handle)
 
-        crop_path = warped_path.replace('warped_Laval_Indoor_HDR_Dataset/warpedHDROutputs/train', 'Laval Indoor HDR Daset/train/HDRInput')
+        crop_path = warped_path.replace('warped_Laval_Indoor_HDR_Dataset/warpedHDROutputs/'+self.flag, 'Laval Indoor HDR Daset/'+self.flag+'/HDRInput')
         crop = util.load_exr(crop_path)
         crop, alpha = self.tone(crop)
         crop = cv2.resize(crop, (128, 128))
