@@ -242,7 +242,7 @@ theta = ((np.arange(128) + 0.5) * np.pi) / 128
 phi = ((np.arange(256) + 0.5) * 2 * np.pi) / 256
 x, y = np.meshgrid(phi, theta)
 dirs = np.column_stack((x.ravel('F'), y.ravel('F')))
-coeff = getSH(3,dirs,'real')
+coeff = getSH(3,dirs)
 
 # train_dir = '/home/fangneng.zfn/datasets/LavalIndoor/nips/'
 bs_dir = '/media/wangao/DataDisk/Study/Dataset/warped_Laval_Indoor_HDR_Dataset/'
