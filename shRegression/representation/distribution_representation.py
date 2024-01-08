@@ -181,37 +181,36 @@ def getSH(N, dirs, basisType):
         m = np.arange(0, n + 1)
         # for m in np.arange(-n, n+1):
 
-        if basisType == 'real':
-            # Vector of unnormalised associated Legendre functions of current order
-            Lnm_real = legendre(n, np.cos(dirs[:, 1]).T).reshape((n + 1, Ndirs))
+        # Vector of unnormalised associated Legendre functions of current order
+        Lnm_real = legendre(n, np.cos(dirs[:, 1]).T).reshape((n + 1, Ndirs))
 
-            if n != 0:
-                # Cancel the Condon-Shortley phase from the definition of
-                # the Legendre functions to result in signless real SH
-                condon = (-1) ** np.concatenate([m[:0:-1], m],dtype=np.double)[:, np.newaxis] * np.ones((1, Ndirs))
-                # Lnm_real = condon * np.concatenate([Lnm_real[-2::-1, :], Lnm_real], axis=0)
-                Lnm_real = condon * np.concatenate([Lnm_real[:0:-1, :], Lnm_real],dtype=np.double)
+        if n != 0:
+            # Cancel the Condon-Shortley phase from the definition of
+            # the Legendre functions to result in signless real SH
+            condon = (-1) ** np.concatenate([m[:0:-1], m],dtype=np.double)[:, np.newaxis] * np.ones((1, Ndirs))
+            # Lnm_real = condon * np.concatenate([Lnm_real[-2::-1, :], Lnm_real], axis=0)
+            Lnm_real = condon * np.concatenate([Lnm_real[:0:-1, :], Lnm_real],dtype=np.double)
 
-            # Normalisations
-            norm_real = (np.sqrt((2 * n + 1) * factorial(n - m) / (4 * np.pi * factorial(n + m)),dtype=np.double))[:, np.newaxis]
+        # Normalisations
+        norm_real = (np.sqrt((2 * n + 1) * factorial(n - m) / (4 * np.pi * factorial(n + m)),dtype=np.double))[:, np.newaxis]
 
-            # Convert to matrix, for direct matrix multiplication with the rest
-            Nnm_real = norm_real * np.ones((1, Ndirs))
-            if n != 0:
-                Nnm_real = np.concatenate([Nnm_real[:0:-1, :], Nnm_real])
+        # Convert to matrix, for direct matrix multiplication with the rest
+        Nnm_real = norm_real * np.ones((1, Ndirs))
+        if n != 0:
+            Nnm_real = np.concatenate([Nnm_real[:0:-1, :], Nnm_real])
 
-            CosSin = np.zeros((2 * n + 1, Ndirs),dtype=np.double)
-            # Zero degree
-            CosSin[n, :] = np.ones((1, Ndirs))
-            # Positive and negative degrees
-            if n != 0:
-                CosSin[m[1:] + n, :] = np.sqrt(2) * np.cos(m[1:][:, np.newaxis] * dirs[:, 0].T)
-                CosSin[-m[:0:-1] + n, :] = np.sqrt(2) * np.sin(m[:0:-1].reshape(len(m[:0:-1]), 1) * dirs[:, 0].T)
+        CosSin = np.zeros((2 * n + 1, Ndirs),dtype=np.double)
+        # Zero degree
+        CosSin[n, :] = np.ones((1, Ndirs))
+        # Positive and negative degrees
+        if n != 0:
+            CosSin[m[1:] + n, :] = np.sqrt(2) * np.cos(m[1:][:, np.newaxis] * dirs[:, 0].T)
+            CosSin[-m[:0:-1] + n, :] = np.sqrt(2) * np.sin(m[:0:-1].reshape(len(m[:0:-1]), 1) * dirs[:, 0].T)
 
-            Ynm = (Nnm_real * Lnm_real * CosSin)
+        Ynm = (Nnm_real * Lnm_real * CosSin)
 
-            Y_N[idx_Y:idx_Y + (2 * n + 1), :] = Ynm
-            idx_Y += 2 * n + 1
+        Y_N[idx_Y:idx_Y + (2 * n + 1), :] = Ynm
+        idx_Y += 2 * n + 1
 
     # Transpose to Ndirs x Nharm
     Y_N = Y_N.T
